@@ -18,11 +18,22 @@ class MinerUResult:
 
 
 class MinerUClient:
-    def __init__(self, base_url: str, *, http: httpx.AsyncClient | None = None, task_timeout: float = 180, poll_interval: float = 2):
+    def __init__(
+        self,
+        base_url: str,
+        *,
+        http: httpx.AsyncClient | None = None,
+        task_timeout: float = 180,
+        poll_interval: float = 2,
+        backend: str = "pipeline",
+        vlm_url: str = "",
+    ):
         self.base_url = base_url.rstrip("/")
         self.http = http
         self.task_timeout = task_timeout
         self.poll_interval = poll_interval
+        self.backend = backend.strip() or "pipeline"
+        self.vlm_url = vlm_url.strip()
 
     async def parse(self, data: bytes, filename: str, media_type: str) -> MinerUResult:
         if self.http is None:
@@ -32,10 +43,17 @@ class MinerUClient:
 
     async def _parse(self, client: httpx.AsyncClient, data: bytes, filename: str, media_type: str) -> MinerUResult:
         try:
+            request_data = {
+                "return_md": "true",
+                "response_format_zip": "false",
+                "backend": self.backend,
+            }
+            if self.vlm_url:
+                request_data["url"] = self.vlm_url
             response = await client.post(
                 f"{self.base_url}/file_parse",
                 files={"files": (filename, io.BytesIO(data), media_type)},
-                data={"return_md": "true", "response_format_zip": "false"},
+                data=request_data,
             )
             response.raise_for_status()
             if "application/json" not in response.headers.get("content-type", ""):
@@ -69,6 +87,12 @@ class MinerUClient:
     def _result_from_payload(payload: dict) -> MinerUResult:
         data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
         markdown = payload.get("markdown") or payload.get("md_content") or data.get("markdown") or data.get("md_content") or payload.get("content")
+        if not markdown and isinstance(payload.get("results"), dict):
+            for result in payload["results"].values():
+                if isinstance(result, dict):
+                    markdown = result.get("markdown") or result.get("md_content") or result.get("content")
+                    if markdown:
+                        break
         if not isinstance(markdown, str) or not markdown.strip():
             raise MinerUError("MinerU returned no Markdown")
         return MinerUResult(markdown=markdown, metadata=payload.get("metadata"))

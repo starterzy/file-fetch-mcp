@@ -27,7 +27,9 @@ file-fetch-mcp
 docker compose up --build
 ```
 
-默认配置通过环境变量注入：`MINERU_API_BASE_URL=http://mineru-api:8000`、`MINERU_TASK_TIMEOUT_SECONDS=180`、`DOWNLOAD_MAX_BYTES=52428800`。
+默认配置通过环境变量注入：`MINERU_API_BASE_URL=http://mineru-api:8000`、`MINERU_TASK_TIMEOUT_SECONDS=180`、`MINERU_POLL_INTERVAL_SECONDS=2`、`MINERU_BACKEND=pipeline`、`MINERU_VLM_URL=`、`DOWNLOAD_MAX_BYTES=52428800`。
+
+MinerU 请求默认使用 `pipeline` 后端，适合 CPU 部署；MCP 会将 `MINERU_BACKEND` 传给 MinerU 的 `backend` 字段。只有 `MINERU_VLM_URL` 非空时，才会额外传递 MinerU API 的 `url` 字段，用于 VLM HTTP Client 等需要远端 OpenAI 兼容服务的后端。
 
 出于 SSRF 防护，默认拒绝 `localhost`、私网 IP 以及解析到私网/本地地址的域名。若 MCP 仅部署在可信内网并且确实需要抓取内网文件，可设置 `ALLOW_PRIVATE_NETWORK_URLS=true`（Docker Compose 中也可覆盖该变量）。开启后请确保 MCP 接口本身仅对可信调用方开放，因为 URL 参数将可以访问该运行环境可达的私有网络地址。
 

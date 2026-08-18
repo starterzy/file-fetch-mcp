@@ -19,6 +19,8 @@ class FileFetchService:
             os.getenv("MINERU_API_BASE_URL", "http://mineru-api:8000"),
             task_timeout=float(os.getenv("MINERU_TASK_TIMEOUT_SECONDS", "180")),
             poll_interval=float(os.getenv("MINERU_POLL_INTERVAL_SECONDS", "2")),
+            backend=os.getenv("MINERU_BACKEND", "pipeline"),
+            vlm_url=os.getenv("MINERU_VLM_URL", ""),
         )
 
     async def extract(self, url: str, *, file_name: str | None = None, max_chars: int | None = None) -> ExtractResult:
