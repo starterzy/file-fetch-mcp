@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "file-fetch-mcp"
+version = "0.1.0"
+description = "MCP server for extracting Markdown content from downloadable documents"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "mcp>=1.27,<2",
+  "httpx>=0.27,<1",
+  "pydantic>=2,<3",
+  "pypdf>=5,<7",
+  "python-docx>=1.1,<2",
+  "openpyxl>=3.1,<4",
+  "xlrd>=2.0,<3",
+  "Pillow>=10,<13",
+]
+
+[project.optional-dependencies]
+ocr = ["rapidocr-onnxruntime>=1.4,<1.5"]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.23,<2", "respx>=0.21,<1"]
+
+[project.scripts]
+file-fetch-mcp = "file_fetch_mcp.server:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["file_fetch_mcp*"]

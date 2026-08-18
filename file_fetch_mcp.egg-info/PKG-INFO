@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: file-fetch-mcp
+Version: 0.1.0
+Summary: MCP server for extracting Markdown content from downloadable documents
+Requires-Python: <3.13,>=3.11
+Requires-Dist: mcp<2,>=1.27
+Requires-Dist: httpx<1,>=0.27
+Requires-Dist: pydantic<3,>=2
+Requires-Dist: pypdf<7,>=5
+Requires-Dist: python-docx<2,>=1.1
+Requires-Dist: openpyxl<4,>=3.1
+Requires-Dist: xlrd<3,>=2.0
+Requires-Dist: Pillow<13,>=10
+Provides-Extra: ocr
+Requires-Dist: rapidocr-onnxruntime<1.5,>=1.4; extra == "ocr"
+Provides-Extra: dev
+Requires-Dist: pytest<9,>=8; extra == "dev"
+Requires-Dist: pytest-asyncio<2,>=0.23; extra == "dev"
+Requires-Dist: respx<1,>=0.21; extra == "dev"

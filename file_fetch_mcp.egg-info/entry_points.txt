@@ -1,0 +1,2 @@
+[console_scripts]
+file-fetch-mcp = file_fetch_mcp.server:main
