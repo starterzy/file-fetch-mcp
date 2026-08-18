@@ -29,4 +29,6 @@ docker compose up --build
 
 默认配置通过环境变量注入：`MINERU_API_BASE_URL=http://mineru-api:8000`、`MINERU_TASK_TIMEOUT_SECONDS=180`、`DOWNLOAD_MAX_BYTES=52428800`。
 
+出于 SSRF 防护，默认拒绝 `localhost`、私网 IP 以及解析到私网/本地地址的域名。若 MCP 仅部署在可信内网并且确实需要抓取内网文件，可设置 `ALLOW_PRIVATE_NETWORK_URLS=true`（Docker Compose 中也可覆盖该变量）。开启后请确保 MCP 接口本身仅对可信调用方开放，因为 URL 参数将可以访问该运行环境可达的私有网络地址。
+
 MCP Server 不包含 MinerU 模型和 GPU 运行时；MinerU 应作为独立服务部署。旧版 DOC 解析器通过 `LEGACY_DOC_PARSER` 配置固定可执行文件路径，不能由 URL 或 Agent 传入。

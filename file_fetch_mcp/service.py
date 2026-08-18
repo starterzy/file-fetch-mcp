@@ -10,10 +10,11 @@ from .parsers import parse_local_bytes
 
 
 class FileFetchService:
-    def __init__(self, *, http: httpx.AsyncClient | None = None, mineru=None, max_bytes: int = 50 * 1024 * 1024, max_chars: int = 200_000):
+    def __init__(self, *, http: httpx.AsyncClient | None = None, mineru=None, max_bytes: int = 50 * 1024 * 1024, max_chars: int = 200_000, allow_private_urls: bool = False):
         self.http = http
         self.max_bytes = max_bytes
         self.max_chars = max_chars
+        self.allow_private_urls = allow_private_urls
         self.mineru = mineru or MinerUClient(
             os.getenv("MINERU_API_BASE_URL", "http://mineru-api:8000"),
             task_timeout=float(os.getenv("MINERU_TASK_TIMEOUT_SECONDS", "180")),
@@ -24,7 +25,7 @@ class FileFetchService:
         own_client = self.http is None
         client = self.http or httpx.AsyncClient(timeout=httpx.Timeout(30, read=120))
         try:
-            downloaded = await download(url, client=client, max_bytes=self.max_bytes)
+            downloaded = await download(url, client=client, max_bytes=self.max_bytes, allow_private=self.allow_private_urls)
             filename = file_name or downloaded.filename
             warnings: list[str] = []
             try:

@@ -15,10 +15,10 @@ class DownloadTooLarge(DownloadError):
     pass
 
 
-async def download(url: str, *, client: httpx.AsyncClient, max_bytes: int = 50 * 1024 * 1024, max_redirects: int = 3) -> DownloadedFile:
+async def download(url: str, *, client: httpx.AsyncClient, max_bytes: int = 50 * 1024 * 1024, max_redirects: int = 3, allow_private: bool = False) -> DownloadedFile:
     current = url
     for _ in range(max_redirects + 1):
-        validate_url(current)
+        validate_url(current, allow_private=allow_private)
         async with client.stream("GET", current, follow_redirects=False) as response:
             if response.is_redirect:
                 location = response.headers.get("location")

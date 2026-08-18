@@ -20,3 +20,11 @@ def test_blocks_unsafe_urls(url):
 def test_blocks_private_literal_ip():
     with pytest.raises(UrlBlocked):
         validate_url("http://10.0.0.5/a.pdf")
+
+
+def test_allows_private_literal_ip_when_explicitly_enabled():
+    assert validate_url("http://10.0.0.5/a.pdf", allow_private=True).hostname == "10.0.0.5"
+
+
+def test_allows_localhost_when_explicitly_enabled():
+    assert validate_url("http://localhost/a.pdf", allow_private=True).hostname == "localhost"

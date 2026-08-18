@@ -10,7 +10,10 @@ mcp = FastMCP(
     port=int(os.getenv("MCP_HTTP_PORT", "8000")),
     streamable_http_path="/mcp",
 )
-service = FileFetchService(max_bytes=int(os.getenv("DOWNLOAD_MAX_BYTES", str(50 * 1024 * 1024))))
+service = FileFetchService(
+    max_bytes=int(os.getenv("DOWNLOAD_MAX_BYTES", str(50 * 1024 * 1024))),
+    allow_private_urls=os.getenv("ALLOW_PRIVATE_NETWORK_URLS", "false").lower() in {"1", "true", "yes", "on"},
+)
 
 
 @mcp.tool()

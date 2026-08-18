@@ -10,6 +10,8 @@ services:
       MINERU_TASK_TIMEOUT_SECONDS: 180
       MINERU_POLL_INTERVAL_SECONDS: 2
       DOWNLOAD_MAX_BYTES: 52428800
+      # Set to true only when this MCP is intentionally allowed to fetch internal URLs.
+      ALLOW_PRIVATE_NETWORK_URLS: "false"
     ports:
       - "8080:8080"
     depends_on:
