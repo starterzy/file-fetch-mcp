@@ -7,6 +7,7 @@ from .downloader import download
 from .mineru_client import MinerUClient
 from .models import ExtractResult, ParseResult
 from .parsers import parse_local_bytes
+from .wps import convert_to_pdf, is_wps_filename
 
 
 class FileFetchService:
@@ -30,18 +31,33 @@ class FileFetchService:
             downloaded = await download(url, client=client, max_bytes=self.max_bytes, allow_private=self.allow_private_urls)
             filename = file_name or downloaded.filename
             warnings: list[str] = []
-            try:
-                parsed = await self.mineru.parse(downloaded.data, filename, downloaded.media_type)
-                markdown = parsed.markdown
-                parser = "mineru"
-                file_format = Path(filename).suffix.lower().lstrip(".") or "unknown"
-            except Exception as exc:
-                local = parse_local_bytes(downloaded.data, filename, downloaded.media_type)
-                markdown = local.markdown
-                parser = "local"
-                file_format = local.format
-                warnings.append(f"MinerU fallback: {type(exc).__name__}")
-                warnings.extend(local.warnings)
+            if is_wps_filename(filename):
+                try:
+                    pdf_data = convert_to_pdf(downloaded.data, filename)
+                    parsed = await self.mineru.parse(pdf_data, f"{Path(filename).stem}.pdf", "application/pdf")
+                    markdown = parsed.markdown
+                    parser = "wps-to-pdf+mineru"
+                    file_format = "wps"
+                except Exception as exc:
+                    local = parse_local_bytes(downloaded.data, filename, downloaded.media_type)
+                    markdown = local.markdown
+                    parser = "wps-local"
+                    file_format = local.format
+                    warnings.append(f"WPS PDF/MinerU fallback: {type(exc).__name__}")
+                    warnings.extend(local.warnings)
+            else:
+                try:
+                    parsed = await self.mineru.parse(downloaded.data, filename, downloaded.media_type)
+                    markdown = parsed.markdown
+                    parser = "mineru"
+                    file_format = Path(filename).suffix.lower().lstrip(".") or "unknown"
+                except Exception as exc:
+                    local = parse_local_bytes(downloaded.data, filename, downloaded.media_type)
+                    markdown = local.markdown
+                    parser = "local"
+                    file_format = local.format
+                    warnings.append(f"MinerU fallback: {type(exc).__name__}")
+                    warnings.extend(local.warnings)
             limit = max_chars or self.max_chars
             truncated = len(markdown) > limit
             if truncated:

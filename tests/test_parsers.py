@@ -36,3 +36,9 @@ def test_parses_sample_image_to_markdown_with_ocr_fallback():
 def test_wps_without_converter_is_explicitly_unsupported():
     with pytest.raises(UnsupportedFormat):
         parse_local(SAMPLES / "f26d64b5345f4fcbb19c77ba844d4123_不流入房产承诺函-正反打印1份公章法人章法人签字.wps")
+
+
+def test_user_reported_wps_sample_is_explicitly_unsupported_without_converter():
+    """Keep the reported OLE WPS file as a regression fixture for the failure path."""
+    with pytest.raises(UnsupportedFormat, match=r"Kingsoft WPS parser is not installed"):
+        parse_local(SAMPLES / "c293149d59e14bb8887582df57d1213a.wps")

@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from .models import ParseResult
+from .wps import WPSParserError, is_wps_filename, parse_with_local_package
 
 
 class UnsupportedFormat(RuntimeError):
@@ -35,8 +36,11 @@ def parse_local(path: str | Path, *, filename: str | None = None, media_type: st
         return _parse_xlsx(path)
     if file_format == "image":
         return _parse_image(path)
-    if Path(name).suffix.lower() in {".wps", ".et", ".dps"}:
-        raise UnsupportedFormat(f"no local parser is configured for {Path(name).suffix}")
+    if is_wps_filename(name):
+        try:
+            return parse_with_local_package(path)
+        except WPSParserError as exc:
+            raise UnsupportedFormat(str(exc)) from exc
     data = path.read_text(encoding="utf-8", errors="replace")
     return ParseResult(markdown=data, format="text", metadata={"media_type": media_type or mimetypes.guess_type(name)[0]})
 

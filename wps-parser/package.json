@@ -1,0 +1,11 @@
+{
+  "name": "file-fetch-mcp-wps-parser",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mdgate/wps": "0.5.2"
+  }
+}

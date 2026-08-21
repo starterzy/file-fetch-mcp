@@ -11,6 +11,13 @@ services:
       MINERU_POLL_INTERVAL_SECONDS: 2
       MINERU_BACKEND: pipeline
       MINERU_VLM_URL: ""
+      # Optional WPS converter, e.g.:
+      # WPS_TO_PDF_COMMAND: soffice --headless --convert-to pdf --outdir {output_dir} {input}
+      WPS_TO_PDF_COMMAND: "soffice --headless --convert-to pdf --outdir {output_dir} {input}"
+      # Override only when using a different local WPS package adapter.
+      WPS_LOCAL_PARSER: ""
+      WPS_CONVERTER_TIMEOUT_SECONDS: 60
+      WPS_LOCAL_PARSER_TIMEOUT_SECONDS: 60
       DOWNLOAD_MAX_BYTES: 52428800
       # Set to true only when this MCP is intentionally allowed to fetch internal URLs.
       ALLOW_PRIVATE_NETWORK_URLS: "false"
