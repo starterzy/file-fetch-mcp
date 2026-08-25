@@ -2,6 +2,7 @@ import mimetypes
 import os
 import shutil
 import subprocess
+import zipfile
 from pathlib import Path
 
 from .models import ParseResult
@@ -17,6 +18,7 @@ def _format_from_name(filename: str) -> str:
     return {
         ".pdf": "pdf", ".doc": "doc", ".docx": "docx", ".xls": "xls", ".xlsx": "xlsx",
         ".png": "image", ".jpg": "image", ".jpeg": "image",
+        ".xml": "xml", ".txt": "txt", ".zip": "zip",
     }.get(suffix, "text")
 
 
@@ -36,6 +38,10 @@ def parse_local(path: str | Path, *, filename: str | None = None, media_type: st
         return _parse_xlsx(path)
     if file_format == "image":
         return _parse_image(path)
+    if file_format in {"xml", "txt"}:
+        return _parse_plain_text(path, file_format, media_type)
+    if file_format == "zip":
+        return _parse_zip(path)
     if is_wps_filename(name):
         try:
             return parse_with_local_package(path)
@@ -141,6 +147,50 @@ def _parse_image(path: Path) -> ParseResult:
         format="image",
         metadata=metadata,
         warnings=["OCR fallback requires the optional rapidocr-onnxruntime dependency"],
+    )
+
+
+def _parse_plain_text(path: Path, file_format: str, media_type: str | None) -> ParseResult:
+    """Return XML/TXT as-is; these formats do not need MinerU or conversion."""
+    text = path.read_bytes().decode("utf-8-sig", errors="replace")
+    return ParseResult(
+        markdown=text,
+        format=file_format,
+        metadata={"media_type": media_type or mimetypes.guess_type(path.name)[0]},
+    )
+
+
+def _parse_zip(path: Path) -> ParseResult:
+    """Parse every non-directory ZIP entry and separate entries by filename."""
+    blocks = []
+    file_names = []
+    max_files = int(os.getenv("ZIP_MAX_FILES", "1000"))
+    max_uncompressed_bytes = int(os.getenv("ZIP_MAX_UNCOMPRESSED_BYTES", str(200 * 1024 * 1024)))
+    max_compression_ratio = float(os.getenv("ZIP_MAX_COMPRESSION_RATIO", "1000"))
+    total_uncompressed_bytes = 0
+    with zipfile.ZipFile(path) as archive:
+        for entry in archive.infolist():
+            if entry.is_dir():
+                continue
+            if len(file_names) >= max_files:
+                raise UnsupportedFormat("ZIP contains too many files")
+            total_uncompressed_bytes += entry.file_size
+            if total_uncompressed_bytes > max_uncompressed_bytes:
+                raise UnsupportedFormat("ZIP uncompressed content exceeds configured limit")
+            if entry.compress_size and entry.file_size / entry.compress_size > max_compression_ratio:
+                raise UnsupportedFormat("ZIP compression ratio exceeds configured limit")
+            file_names.append(entry.filename)
+            content = parse_local_bytes(
+                archive.read(entry),
+                entry.filename,
+                mimetypes.guess_type(entry.filename)[0],
+            )
+            blocks.append(f"# {entry.filename}\n\n{content.markdown}")
+
+    return ParseResult(
+        markdown="\n\n".join(blocks),
+        format="zip",
+        metadata={"files": file_names},
     )
 
 

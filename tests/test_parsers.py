@@ -1,4 +1,5 @@
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -42,3 +43,32 @@ def test_user_reported_wps_sample_is_explicitly_unsupported_without_converter():
     """Keep the reported OLE WPS file as a regression fixture for the failure path."""
     with pytest.raises(UnsupportedFormat, match=r"Kingsoft WPS parser is not installed"):
         parse_local(SAMPLES / "c293149d59e14bb8887582df57d1213a.wps")
+
+
+def test_parses_xml_and_txt_as_plain_text(tmp_path):
+    xml = tmp_path / "sample.xml"
+    txt = tmp_path / "sample.txt"
+    xml.write_text("<?xml version=\"1.0\"?><root>内容</root>", encoding="utf-8")
+    txt.write_text("第一行\n第二行", encoding="utf-8")
+
+    assert parse_local(xml).markdown == "<?xml version=\"1.0\"?><root>内容</root>"
+    assert parse_local(xml).format == "xml"
+    assert parse_local(txt).markdown == "第一行\n第二行"
+    assert parse_local(txt).format == "txt"
+
+
+def test_parses_all_zip_files_with_filename_headings(tmp_path):
+    archive_path = tmp_path / "bundle.zip"
+    with ZipFile(archive_path, "w") as archive:
+        archive.writestr("a.txt", "文本 A")
+        archive.writestr("nested/config.xml", "<config>A</config>")
+        archive.writestr("empty-dir/", "")
+
+    result = parse_local(archive_path)
+
+    assert result.format == "zip"
+    assert result.markdown == (
+        "# a.txt\n\n文本 A\n\n"
+        "# nested/config.xml\n\n<config>A</config>"
+    )
+    assert result.metadata["files"] == ["a.txt", "nested/config.xml"]

@@ -1,6 +1,6 @@
 # file-fetch-mcp
 
-通过 MCP tool 接收匿名 HTTP/HTTPS 文件下载链接，优先调用独立部署的 MinerU API，失败后使用本地 Python 解析器，并统一返回 Markdown。支持新旧 Office：DOC/DOCX、XLS/XLSX；其中旧版 DOC 需要配置 antiword、catdoc 或其他受控转换器。WPS/ET/DPS 会先通过本地转换器转 PDF 再交给 MinerU，转换或 MinerU 失败时调用配置的本地 WPS 包。
+通过 MCP tool 接收匿名 HTTP/HTTPS 文件下载链接，优先调用独立部署的 MinerU API，失败后使用本地 Python 解析器，并统一返回 Markdown。支持新旧 Office：DOC/DOCX、XLS/XLSX；XML/TXT 直接返回文本内容；ZIP 会遍历其中所有文件并以文件名一级标题拼接各文件内容。其中旧版 DOC 需要配置 antiword、catdoc 或其他受控转换器。WPS/ET/DPS 会先通过本地转换器转 PDF 再交给 MinerU，转换或 MinerU 失败时调用配置的本地 WPS 包。
 
 ## 开发
 
