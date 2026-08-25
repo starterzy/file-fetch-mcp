@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import importlib
-import os
-import shlex
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -22,49 +19,6 @@ class WPSParserError(RuntimeError):
 
 def is_wps_filename(filename: str) -> bool:
     return Path(filename).suffix.lower() in WPS_SUFFIXES
-
-
-def convert_to_pdf(data: bytes, filename: str) -> bytes:
-    """Convert a WPS-family document with a fixed, locally configured command.
-
-    ``WPS_TO_PDF_COMMAND`` is a shell-like argument list and must contain
-    ``{input}`` and ``{output_dir}``, for example::
-
-        soffice --headless --convert-to pdf --outdir {output_dir} {input}
-
-    The command is never interpreted by a shell.  If it is not configured,
-    ``soffice`` or ``libreoffice`` is used when available.
-    """
-    command_template = os.getenv("WPS_TO_PDF_COMMAND", "").strip()
-    if command_template:
-        command = shlex.split(command_template)
-        if "{input}" not in command or "{output_dir}" not in command:
-            raise WPSParserError("WPS_TO_PDF_COMMAND must contain {input} and {output_dir}")
-    else:
-        executable = shutil.which("soffice") or shutil.which("libreoffice")
-        if not executable:
-            raise WPSParserError("WPS PDF converter is not configured")
-        command = [executable, "--headless", "--convert-to", "pdf", "--outdir", "{output_dir}", "{input}"]
-
-    with tempfile.TemporaryDirectory(prefix="wps-convert-") as workdir:
-        input_path = Path(workdir) / Path(filename).name
-        output_dir = Path(workdir) / "out"
-        output_dir.mkdir()
-        input_path.write_bytes(data)
-        command = [part.format(input=str(input_path), output_dir=str(output_dir)) for part in command]
-        completed = subprocess.run(
-            command,
-            check=False,
-            capture_output=True,
-            timeout=float(os.getenv("WPS_CONVERTER_TIMEOUT_SECONDS", "60")),
-        )
-        if completed.returncode != 0:
-            detail = completed.stderr.decode("utf-8", errors="replace").strip()
-            raise WPSParserError(detail or "WPS PDF converter failed")
-        pdfs = list(output_dir.glob("*.pdf"))
-        if len(pdfs) != 1 or not pdfs[0].read_bytes().startswith(b"%PDF"):
-            raise WPSParserError("WPS PDF converter did not produce a valid PDF")
-        return pdfs[0].read_bytes()
 
 
 def parse_with_local_package(path: Path) -> ParseResult:

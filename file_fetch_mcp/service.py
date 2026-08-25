@@ -10,7 +10,7 @@ from .downloader import download
 from .mineru_client import MinerUClient
 from .models import ExtractResult, ParseResult
 from .parsers import UnsupportedFormat, parse_local_bytes
-from .wps import convert_to_pdf, is_wps_filename
+from .wps import is_wps_filename
 
 
 class FileFetchService:
@@ -53,15 +53,9 @@ class FileFetchService:
 
         warnings: list[str] = []
         if is_wps_filename(filename):
-            try:
-                pdf_data = convert_to_pdf(data, filename)
-                parsed = await self.mineru.parse(pdf_data, f"{Path(filename).stem}.pdf", "application/pdf")
-                return parsed.markdown, "wps", "wps-to-pdf+mineru", warnings
-            except Exception as exc:
-                local = parse_local_bytes(data, filename, media_type)
-                warnings.append(f"WPS PDF/MinerU fallback: {type(exc).__name__}")
-                warnings.extend(local.warnings)
-                return local.markdown, local.format, "wps-local", warnings
+            local = parse_local_bytes(data, filename, media_type)
+            warnings.extend(local.warnings)
+            return local.markdown, local.format, "wps-local", warnings
 
         if Path(filename).suffix.lower() in {".xml", ".txt"}:
             local = parse_local_bytes(data, filename, media_type)

@@ -66,11 +66,68 @@ def parse_local_bytes(data: bytes, filename: str, media_type: str | None = None)
 
 def _parse_pdf(path: Path) -> ParseResult:
     from pypdf import PdfReader
+
     reader = PdfReader(str(path))
     pages = []
+    ocr_pages = []
+    ocr_warnings = []
+    ocr_disabled = False
+    min_text_chars = int(os.getenv("PDF_OCR_MIN_TEXT_CHARS", "20"))
     for index, page in enumerate(reader.pages, 1):
-        pages.append(f"## Page {index}\n\n{(page.extract_text() or '').strip()}")
-    return ParseResult(markdown="# PDF Document\n\n" + "\n\n".join(pages), format="pdf", metadata={"pages": len(reader.pages)})
+        text = (page.extract_text() or "").strip()
+        if len(text) < min_text_chars and not ocr_disabled:
+            try:
+                ocr_text = _ocr_pdf_page(path, index - 1)
+            except ImportError as exc:
+                ocr_disabled = True
+                ocr_text = ""
+                ocr_warnings.append(f"PDF OCR dependencies unavailable: {exc}")
+            except Exception as exc:
+                ocr_text = ""
+                ocr_warnings.append(f"PDF OCR failed on page {index}: {type(exc).__name__}")
+            if ocr_text:
+                text = ocr_text
+                ocr_pages.append(index)
+        pages.append(f"## Page {index}\n\n{text}")
+
+    warnings = ocr_warnings
+    if ocr_pages:
+        warnings.append(f"OCR used for PDF pages: {','.join(map(str, ocr_pages))}")
+    return ParseResult(
+        markdown="# PDF Document\n\n" + "\n\n".join(pages),
+        format="pdf",
+        metadata={"pages": len(reader.pages), "ocr_pages": ocr_pages},
+        warnings=warnings,
+    )
+
+
+def _ocr_pdf_page(path: Path, page_number: int) -> str:
+    """Render one PDF page and OCR it with the optional local OCR stack."""
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        import fitz
+
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+    except ImportError:
+        raise
+
+    import tempfile
+
+    scale = float(os.getenv("PDF_OCR_RENDER_SCALE", "2"))
+    with fitz.open(str(path)) as document:
+        page = document.load_page(page_number)
+        pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+        with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+            image_file.write(pixmap.tobytes("png"))
+            image_file.flush()
+            output, _ = RapidOCR()(image_file.name)
+    return "\n".join(
+        item[1].strip()
+        for item in (output or [])
+        if len(item) > 1 and item[1] and item[1].strip()
+    )
 
 
 def _parse_docx(path: Path) -> ParseResult:
