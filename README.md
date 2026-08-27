@@ -2,6 +2,8 @@
 
 通过 MCP tool 接收匿名 HTTP/HTTPS 文件下载链接，优先调用独立部署的 MinerU API，失败后使用本地 Python 解析器，并统一返回 Markdown。支持新旧 Office：DOC/DOCX、XLS/XLSX；XML/TXT 直接返回文本内容；ZIP 会遍历其中所有文件并以文件名一级标题拼接各文件内容。其中旧版 DOC 需要配置 antiword、catdoc 或其他受控转换器。WPS/ET/DPS 直接使用本地 WPS 包解析；扫描版 PDF 在本地 fallback 时使用 PyMuPDF + RapidOCR。
 
+除同步的 `extract_file_content` 外，还提供 `submit_file_parse` 和 `get_file_parse_result` 异步工具。对于可能超过调用方 300 秒限制的 PDF、ZIP 等文件，先提交任务拿到 `task_id`，再轮询查询结果；任务结果默认在进程内保留 1 小时，容器重启后任务状态会丢失。
+
 ## 开发
 
 ```powershell
