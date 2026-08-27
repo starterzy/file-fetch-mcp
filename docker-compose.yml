@@ -21,6 +21,7 @@ services:
       DOWNLOAD_MAX_BYTES: 52428800
       # Set to true only when this MCP is intentionally allowed to fetch internal URLs.
       ALLOW_PRIVATE_NETWORK_URLS: "true"
+      ASYNC_PARSE_MAX_CONCURRENT: 5
     ports:
       - "8081:8080"
     #depends_on:

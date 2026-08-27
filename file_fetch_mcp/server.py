@@ -21,7 +21,7 @@ service = FileFetchService(
 )
 _async_jobs: dict[str, "AsyncParseJob"] = {}
 _async_job_ttl_seconds = int(os.getenv("ASYNC_PARSE_JOB_TTL_SECONDS", "3600"))
-_async_job_semaphore = asyncio.Semaphore(int(os.getenv("ASYNC_PARSE_MAX_CONCURRENT", "2")))
+_async_job_semaphore = asyncio.Semaphore(int(os.getenv("ASYNC_PARSE_MAX_CONCURRENT", "5")))
 
 
 @dataclass
@@ -56,13 +56,15 @@ async def _run_async_parse(job: AsyncParseJob, url: str, file_name: str | None, 
             job.updated_at = time.monotonic()
 
 
-@mcp.tool()
-async def extract_file_content(url: str, file_name: str | None = None, max_chars: int = 50_000) -> str:
-    """Download an anonymous HTTP/HTTPS file URL and return MinerU-style Markdown content."""
-    result = await service.extract(url, file_name=file_name, max_chars=max_chars)
-    if result.warnings:
-        return result.markdown + "\n\n" + "\n".join(f"> Warning: {warning}" for warning in result.warnings)
-    return result.markdown
+# The synchronous tool is intentionally disabled because its single Streamable
+# HTTP request can exceed the caller's 300-second limit. Use submit_file_parse
+# and get_file_parse_result instead.
+# @mcp.tool()
+# async def extract_file_content(url: str, file_name: str | None = None, max_chars: int = 50_000) -> str:
+#     result = await service.extract(url, file_name=file_name, max_chars=max_chars)
+#     if result.warnings:
+#         return result.markdown + "\n\n" + "\n".join(f"> Warning: {warning}" for warning in result.warnings)
+#     return result.markdown
 
 
 @mcp.tool()
